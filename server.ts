@@ -18,30 +18,40 @@ const STANDARDS_DATA = {
       sensitivity: "Wire-type IQI required for sensitivity verification"
     }
   },
-  ASME_VIII: {
-    name: "ASME Section VIII",
-    focus: "Pressure Vessels",
+  ISO_17636_2: {
+    name: "ISO 17636-2",
+    focus: "Digital Radiography",
     criteria: {
-      porosity: "Max 1/4 inch or 1/3 thickness",
-      slag: "Max 1/3 thickness or 3/4 inch",
-      cracks: "Strictly prohibited"
+      detector: "Digital detector array (DDA) or imaging plates (IP)",
+      imageQuality: "SNR and CNR requirements",
+      compensation: "Software-based image enhancement"
     }
   },
-  AWS_D1_1: {
-    name: "AWS D1.1",
-    focus: "Structural Welding (Steel)",
+  ASME_SECTION_V: {
+    name: "ASME Section V",
+    focus: "Nondestructive Examination",
     criteria: {
-      undercut: "Max 0.01 inch for primary members",
-      porosity: "Max 1/8 inch diameter",
-      fusion: "Complete fusion required"
+      article_2: "Radiographic Examination requirements",
+      density: "Optical density limits for film",
+      iqi: "Hole-type or wire-type IQI selection"
     }
   },
-  DNV_ST_N001: {
-    name: "DNV-ST-N001",
-    focus: "Marine Operations",
+  ASTM_E94: {
+    name: "ASTM E94",
+    focus: "Standard Guide for Radiographic Examination",
     criteria: {
-      fatigue: "High fatigue resistance required",
-      defects: "Stricter limits for dynamic loading"
+      film_selection: "Selection of appropriate film types",
+      processing: "Standardized chemical processing",
+      viewing: "Illumination and viewing conditions"
+    }
+  },
+  DNV_OS_C401: {
+    name: "DNV-OS-C401",
+    focus: "Fabrication and Testing of Offshore Structures",
+    criteria: {
+      marine_spec: "Specific requirements for maritime hull and structures",
+      acceptance: "Stricter limits for dynamic loading zones",
+      fatigue: "High fatigue resistance verification"
     }
   },
   REFERENCE_RESOURCES: {

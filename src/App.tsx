@@ -73,7 +73,6 @@ interface HistoryItem {
   config: {
     thickness: string;
     qualityLevel: string;
-    isoClass: string;
   };
 }
 
@@ -130,7 +129,7 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("weldinspect-theme") as "dark" | "light") || "dark";
+      return (localStorage.getItem("marina-theme") as "dark" | "light") || "dark";
     }
     return "dark";
   });
@@ -138,7 +137,7 @@ export default function App() {
   const [feedbackFile, setFeedbackFile] = useState<{name: string, data: string} | null>(null);
   const [feedbacks, setFeedbacks] = useState<{id: string, text: string, timestamp: string, file?: {name: string, data: string}}[]>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("weldinspect-feedbacks");
+      const saved = localStorage.getItem("marina-feedbacks");
       return saved ? JSON.parse(saved) : [];
     }
     return [];
@@ -154,8 +153,8 @@ export default function App() {
     reportNo: `RT-2026-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
     date: new Date().toLocaleDateString(),
     inspectorName: "",
-    softwareName: "WeldVision RT v1.0",
-    standardUsed: "ISO 5817 (Level B/C/D)",
+    softwareName: "MARINA NDT v1.0",
+    standardUsed: "",
     rtStandard: "ISO 17636-1"
   });
 
@@ -175,7 +174,7 @@ export default function App() {
 
   // Persist theme
   useEffect(() => {
-    localStorage.setItem("weldinspect-theme", theme);
+    localStorage.setItem("marina-theme", theme);
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
@@ -185,13 +184,12 @@ export default function App() {
 
   // Persist feedbacks
   useEffect(() => {
-    localStorage.setItem("weldinspect-feedbacks", JSON.stringify(feedbacks));
+    localStorage.setItem("marina-feedbacks", JSON.stringify(feedbacks));
   }, [feedbacks]);
   
   // Config States
   const [thickness, setThickness] = useState("");
   const [qualityLevel, setQualityLevel] = useState<"B" | "C" | "D">("B");
-  const [isoClass, setIsoClass] = useState<"A" | "B">("B"); // ISO 17636-1 Class
   const [preprocessing, setPreprocessing] = useState({
     clahe: true,
     gaussian: false,
@@ -207,7 +205,7 @@ export default function App() {
     // Header
     doc.setFontSize(22);
     doc.setTextColor(249, 115, 22); // Orange-500
-    doc.text("WeldInspect AI - Analysis Report", 14, 20);
+    doc.text("MARINA - Analysis Report", 14, 20);
     
     doc.setFontSize(10);
     doc.setTextColor(100);
@@ -238,7 +236,7 @@ export default function App() {
     autoTable(doc, {
       startY: finalY + 3,
       body: [
-        ['Weld ID', `: ${item.exposureDetails.weldId}`, 'Radiation Source', `: ${item.exposureDetails.radiationSource}`],
+        ['Weld ID', `: ${item.exposureDetails.weldId}`, 'Structure Type', `: ${item.exposureDetails.radiationSource}`],
         ['Joint Type', `: ${item.exposureDetails.jointType}`, 'Source to Film Dist', `: ${item.exposureDetails.sourceToFilmDist}`],
         ['Material', `: ${item.exposureDetails.material}`, 'Exposure Time', `: ${item.exposureDetails.exposureTime}`],
         ['Thickness (t)', `: ${item.exposureDetails.thickness}`, 'Film Type', `: ${item.exposureDetails.filmType}`],
@@ -273,14 +271,13 @@ export default function App() {
     doc.text("4. Detailed Defect Table (CORE PART)", 14, finalY);
     autoTable(doc, {
       startY: finalY + 3,
-      head: [['S.No', 'Defect Type', 'Location (mm)', 'Size (mm)', 'Shape', 'Confidence (%)', 'ISO 5817 Limit', 'Status']],
+      head: [['S.No', 'Defect Type', 'Location (mm)', 'Size (mm)', 'Shape', 'ISO 5817 Limit', 'Status']],
       body: item.result.defects.map((d, i) => [
         i + 1,
         d.type,
         d.location,
         d.size,
         d.shape || 'N/A',
-        d.confidence || 'N/A',
         d.isoLimit || 'N/A',
         d.status || 'N/A'
       ]),
@@ -347,7 +344,7 @@ export default function App() {
     doc.setFontSize(8);
     doc.text("Note: Final acceptance subject to certified inspector approval.", 14, finalY + 42);
 
-    doc.save(`WeldInspect_Report_${item.id.slice(0, 8)}.pdf`);
+    doc.save(`MARINA_Report_${item.id.slice(0, 8)}.pdf`);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -381,8 +378,8 @@ export default function App() {
       const analysis = await analyzeRTFilm(image, {
         thickness,
         qualityLevel,
-        isoClass,
-        isOffshore: true,
+        structureType: exposureDetails.radiationSource,
+        standardUsed: generalInfo.standardUsed,
         feedbackContext: feedbacks.length > 0 ? feedbacks.map(f => f.text).join(" | ") : undefined
       });
       
@@ -402,7 +399,6 @@ export default function App() {
       analysis.defects = analysis.defects.map(d => ({
         ...d,
         shape: d.type.toLowerCase().includes('porosity') ? 'Circular' : (d.type.toLowerCase().includes('crack') ? 'Linear' : 'Irregular'),
-        confidence: `${Math.floor(Math.random() * 15) + 80}%`,
         isoLimit: analysis.complianceGrade === 'Acceptable' ? '≤ 3 mm (Level C)' : 'Limited',
         status: analysis.complianceGrade === 'Acceptable' ? 'Accept' : (analysis.complianceGrade === 'Reject' ? 'Reject' : 'Review')
       }));
@@ -426,8 +422,7 @@ export default function App() {
         exposureDetails: { ...exposureDetails },
         config: {
           thickness,
-          qualityLevel,
-          isoClass
+          qualityLevel
         }
       };
       setHistory(prev => [newHistoryItem, ...prev]);
@@ -468,12 +463,12 @@ export default function App() {
               <Activity className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight leading-none">WeldInspect <span className="text-orange-500">AI</span></h1>
+              <h1 className="text-lg font-bold tracking-tight leading-none">MARINA <span className="text-orange-500">(Maritime Regulatory Inspection and NDT Assessment)</span></h1>
               <p className={cn(
                 "text-[9px] uppercase tracking-[0.2em] mt-1 font-semibold",
                 theme === "dark" ? "text-white/40" : "text-black"
               )}>
-                Weld Defect Analysis
+                Maritime NDT Assessment
               </p>
             </div>
           </div>
@@ -523,18 +518,18 @@ export default function App() {
           "flex items-center gap-2 p-1 rounded-lg w-fit border transition-colors",
           theme === "dark" ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5"
         )}>
-          <button 
-            onClick={() => { setActiveTab("offshore"); setResult(null); }}
-            className={cn(
-              "px-4 py-2 rounded-md text-xs font-bold transition-all flex items-center gap-2",
-              activeTab === "offshore" 
-                ? (theme === "dark" ? "bg-white/10 text-white shadow-sm" : "bg-black/10 text-black shadow-sm") 
-                : (theme === "dark" ? "text-white/40 hover:text-white/60" : "text-black/70 hover:text-black/90")
-            )}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            Weld Defect Analysis
-          </button>
+            <button 
+              onClick={() => { setActiveTab("offshore"); setResult(null); }}
+              className={cn(
+                "px-4 py-2 rounded-md text-xs font-bold transition-all flex items-center gap-2",
+                activeTab === "offshore" 
+                  ? (theme === "dark" ? "bg-white/10 text-white shadow-sm" : "bg-black/10 text-black shadow-sm") 
+                  : (theme === "dark" ? "text-white/40 hover:text-white/60" : "text-black/70 hover:text-black/90")
+              )}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              Maritime NDT Assessment
+            </button>
         </div>
 
         {activeTab === "offshore" ? (
@@ -755,26 +750,42 @@ export default function App() {
                         onChange={(e) => setExposureDetails(prev => ({ ...prev, weldId: e.target.value }))}
                         className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10" : "border-black/10")}
                       />
+                      <p className={cn("text-[8px] mt-1 italic opacity-60", theme === "dark" ? "text-white" : "text-black")}>
+                        Example: BLK-12-FR45-SH-03
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className={cn("text-[9px] font-bold uppercase tracking-widest", theme === "dark" ? "text-white/40" : "text-black/70")}>Material</label>
-                      <input 
-                        type="text" 
+                      <select 
                         value={exposureDetails.material}
                         onChange={(e) => setExposureDetails(prev => ({ ...prev, material: e.target.value }))}
-                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10" : "border-black/10")}
-                      />
+                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10 text-white" : "border-black/10 text-black")}
+                      >
+                        <option value="" className="bg-[#1A1A1A]">Select Material</option>
+                        <option value="Carbon Steel" className="bg-[#1A1A1A]">Carbon Steel</option>
+                        <option value="Stainless Steel" className="bg-[#1A1A1A]">Stainless Steel</option>
+                        <option value="Aluminum" className="bg-[#1A1A1A]">Aluminum</option>
+                        <option value="Duplex Steel" className="bg-[#1A1A1A]">Duplex Steel</option>
+                        <option value="Copper-Nickel" className="bg-[#1A1A1A]">Copper-Nickel</option>
+                      </select>
                     </div>
                     <div className="space-y-1.5">
                       <label className={cn("text-[9px] font-bold uppercase tracking-widest", theme === "dark" ? "text-white/40" : "text-black/70")}>Joint Type</label>
-                      <input 
-                        type="text" 
+                      <select 
                         value={exposureDetails.jointType}
                         onChange={(e) => setExposureDetails(prev => ({ ...prev, jointType: e.target.value }))}
-                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10" : "border-black/10")}
-                      />
+                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10 text-white" : "border-black/10 text-black")}
+                      >
+                        <option value="" className="bg-[#1A1A1A]">Select Joint Type</option>
+                        <option value="Butt Joint" className="bg-[#1A1A1A]">Butt Joint</option>
+                        <option value="T-Joint" className="bg-[#1A1A1A]">T-Joint</option>
+                        <option value="Corner Joint" className="bg-[#1A1A1A]">Corner Joint</option>
+                        <option value="Lap Joint" className="bg-[#1A1A1A]">Lap Joint</option>
+                        <option value="Edge Joint" className="bg-[#1A1A1A]">Edge Joint</option>
+                        <option value="Cruciform Joint" className="bg-[#1A1A1A]">Cruciform Joint</option>
+                      </select>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -799,22 +810,35 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className={cn("text-[9px] font-bold uppercase tracking-widest", theme === "dark" ? "text-white/40" : "text-black/70")}>Radiation Source</label>
-                      <input 
-                        type="text" 
+                      <label className={cn("text-[9px] font-bold uppercase tracking-widest", theme === "dark" ? "text-white/40" : "text-black/70")}>Structure Type</label>
+                      <select 
                         value={exposureDetails.radiationSource}
                         onChange={(e) => setExposureDetails(prev => ({ ...prev, radiationSource: e.target.value }))}
-                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10" : "border-black/10")}
-                      />
+                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10 text-white" : "border-black/10 text-black")}
+                      >
+                        <option value="" className="bg-[#1A1A1A]">Select Structure</option>
+                        <option value="Hull Plating" className="bg-[#1A1A1A]">Hull Plating</option>
+                        <option value="Deck Structure" className="bg-[#1A1A1A]">Deck Structure</option>
+                        <option value="Bulkhead" className="bg-[#1A1A1A]">Bulkhead</option>
+                        <option value="Piping System" className="bg-[#1A1A1A]">Piping System</option>
+                        <option value="Pressure Vessel" className="bg-[#1A1A1A]">Pressure Vessel</option>
+                        <option value="Engine Mount" className="bg-[#1A1A1A]">Engine Mount</option>
+                      </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className={cn("text-[9px] font-bold uppercase tracking-widest", theme === "dark" ? "text-white/40" : "text-black/70")}>Exposure Time</label>
-                      <input 
-                        type="text" 
-                        value={exposureDetails.exposureTime}
-                        onChange={(e) => setExposureDetails(prev => ({ ...prev, exposureTime: e.target.value }))}
-                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10" : "border-black/10")}
-                      />
+                      <label className={cn("text-[9px] font-bold uppercase tracking-widest", theme === "dark" ? "text-white/40" : "text-black/70")}>Analysis Standard</label>
+                      <select 
+                        value={generalInfo.standardUsed}
+                        onChange={(e) => setGeneralInfo(prev => ({ ...prev, standardUsed: e.target.value }))}
+                        className={cn("w-full bg-transparent border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-orange-500/50 transition-all", theme === "dark" ? "border-white/10 text-white" : "border-black/10 text-black")}
+                      >
+                        <option value="" className="bg-[#1A1A1A]">Select Standard</option>
+                        <option value="ISO 17636-1" className="bg-[#1A1A1A]">ISO 17636-1</option>
+                        <option value="ISO 17636-2" className="bg-[#1A1A1A]">ISO 17636-2</option>
+                        <option value="ASME Section V" className="bg-[#1A1A1A]">ASME Section V</option>
+                        <option value="ASTM E94" className="bg-[#1A1A1A]">ASTM E94</option>
+                        <option value="DNV-OS-C401" className="bg-[#1A1A1A]">DNV-OS-C401</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -842,29 +866,6 @@ export default function App() {
                         theme === "dark" ? "border-white/10 text-white" : "border-black/10 text-white"
                       )}
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest",
-                      theme === "dark" ? "text-white/40" : "text-black/70"
-                    )}>ISO 17636-1 Technique</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {["A", "B"].map((c) => (
-                        <button 
-                          key={c}
-                          onClick={() => setIsoClass(c as any)}
-                          className={cn(
-                            "py-2 rounded-lg text-xs font-bold uppercase tracking-widest border transition-all",
-                            isoClass === c 
-                              ? "bg-orange-500/10 border-orange-500/40 text-orange-500" 
-                              : theme === "dark" ? "bg-white/5 border-white/5 text-white/40 hover:bg-white/10" : "bg-black/5 border-black/5 text-black/70 hover:bg-black/10"
-                          )}
-                        >
-                          Class {c}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -924,7 +925,7 @@ export default function App() {
                   "text-[10px] leading-relaxed uppercase font-bold",
                   theme === "dark" ? "text-white/40" : "text-black/70"
                 )}>
-                  AI-powered defect detection calibrated for ISO 17636-1:2022 standards. Supports steel, nickel, and titanium alloy weldments.
+                  Automated defect detection calibrated for ISO 17636-1:2022 standards. Supports steel, nickel, and titanium alloy weldments.
                 </p>
               </div>
             </div>
@@ -967,13 +968,12 @@ export default function App() {
                 <div className="flex-1 bg-black/40 rounded-lg p-6 font-mono text-[10px] text-orange-500/80 leading-relaxed overflow-x-auto">
                   <pre>{`import cv2
 import numpy as np
-from weld_inspect_ai import WeldDefectAnalysis
+from marina import NDTAssessment
 
-# Initialize the Weld Defect Analysis
-analysis = WeldDefectAnalysis(
+# Initialize the NDT Assessment
+analysis = NDTAssessment(
     thickness=${thickness},
     quality_level="${qualityLevel}",
-    iso_class="${isoClass}",
     preprocessing={
         "clahe": ${preprocessing.clahe},
         "gaussian": ${preprocessing.gaussian},
@@ -1099,7 +1099,7 @@ for defect in results.defects:
                           <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">
                             {new Date(item.timestamp).toLocaleDateString()} • {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
-                          <h4 className="text-xs font-bold mt-1">ISO 17636-1 Class {item.config.isoClass}</h4>
+                          <h4 className="text-xs font-bold mt-1">{item.result.standardApplied.replace(/_/g, ' ')}</h4>
                         </div>
                         <div className="text-right">
                           <p className="text-[9px] text-white/40 uppercase font-bold">Thickness</p>
@@ -1129,7 +1129,6 @@ for defect in results.defects:
                             setImage(item.image);
                             setResult(item.result);
                             setThickness(item.config.thickness);
-                            setIsoClass(item.config.isoClass as any);
                             setQualityLevel(item.config.qualityLevel as any);
                             setActiveTab("offshore");
                           }}
@@ -1263,7 +1262,7 @@ for defect in results.defects:
               "text-[11px] leading-relaxed uppercase font-bold",
               theme === "dark" ? "text-white/40" : "text-black/70"
             )}>
-              Your feedback is actively used to refine the AI analysis logic. 
+              Your feedback is actively used to refine the analysis logic. 
               We backtrack and retrain models based on reported inaccuracies to ensure 100% compliance.
             </p>
             <div className="relative">
@@ -1383,7 +1382,7 @@ for defect in results.defects:
             "text-[9px] uppercase tracking-[0.2em] font-bold",
             theme === "dark" ? "text-white/20" : "text-black/50"
           )}>
-            © 2026 WeldInspect AI • Advanced NDT Analysis System
+            © 2026 MARINA • Advanced NDT Analysis System
           </p>
           <div className="flex gap-6">
             <span className="text-[9px] text-orange-500/40 uppercase font-bold cursor-pointer hover:text-orange-500 transition-colors">Privacy Policy</span>

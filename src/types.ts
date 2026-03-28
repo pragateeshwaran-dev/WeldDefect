@@ -1,9 +1,9 @@
 export type NDTStandard = 
-  | "ASME_VIII" 
-  | "AWS_D1_1" 
-  | "DNV_ST_N001" 
-  | "DNV_ST_N002" 
-  | "ISO_17636_1";
+  | "ISO_17636_1" 
+  | "ISO_17636_2" 
+  | "ASME_SECTION_V" 
+  | "ASTM_E94" 
+  | "DNV_OS_C401";
 
 export interface RTDefect {
   type: string;
@@ -12,7 +12,6 @@ export interface RTDefect {
   distribution: string;
   description: string;
   shape?: string;
-  confidence?: string;
   isoLimit?: string;
   status?: "Accept" | "Reject" | "Review";
   boundingBox?: [number, number, number, number]; // [ymin, xmin, ymax, xmax] normalized 0-1000

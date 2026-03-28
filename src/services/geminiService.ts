@@ -19,21 +19,22 @@ export async function analyzeRTFilm(
   config: {
     thickness: string;
     qualityLevel: string;
-    isoClass?: string;
-    isOffshore: boolean;
+    structureType?: string;
+    standardUsed?: string;
     feedbackContext?: string;
   }
 ): Promise<AnalysisResult> {
   const backendStandards = await getStandardsFromBackend();
   
-  const SYSTEM_INSTRUCTION = `You are an expert NDT (Non-Destructive Testing) and Radiographic Testing (RT) specialist. 
-Your task is to analyze RT film images of welds and interpret defects based on international standards.
+  const SYSTEM_INSTRUCTION = `You are an expert NDT (Non-Destructive Testing) and Radiographic Testing (RT) specialist for MARINA (Maritime Regulatory Inspection and NDT Assessment). 
+Your task is to analyze RT film images of welds and interpret defects based on maritime and international standards.
 
 USER CONFIGURATION:
 - Material Thickness: ${config.thickness} mm
-- ISO 5817 Quality Level: ${config.qualityLevel}
-${config.isoClass ? `- ISO 17636-1 Technique Class: ${config.isoClass}` : ""}
-- Analysis Mode: Weld Defect Analysis
+- Quality Level: ${config.qualityLevel}
+- Structure Type: ${config.structureType || "Not Specified"}
+- Selected Standard: ${config.standardUsed || "ISO 17636-1"}
+- Analysis Mode: Maritime NDT Assessment
 
 ${config.feedbackContext ? `HISTORICAL FEEDBACK (USE THIS TO REFINE ANALYSIS):
 ${config.feedbackContext}` : ""}
@@ -42,9 +43,10 @@ BACKEND STANDARDS KNOWLEDGE:
 ${JSON.stringify(backendStandards, null, 2)}
 
 PRIMARY CONSIDERATION:
-- ISO 17636-1: This is the main standard for detection and image quality.
-- Focus on weld defect identification and characterization as per international standards.
+- ${config.standardUsed || "ISO 17636-1"}: This is the primary standard for detection and image quality.
+- Focus on weld defect identification and characterization as per maritime standards.
 - Use the provided Material Thickness and Quality Level to determine acceptance criteria.
+- NEVER provide percentage assurance or confidence scores in the result.
 
 ANALYSIS REQUIREMENTS:
 - Identify the type of defect (e.g., Porosity, Slag Inclusion, Lack of Fusion, Cracks, Undercut).
@@ -52,7 +54,7 @@ ANALYSIS REQUIREMENTS:
 - Identify the location (e.g., Root, Face, Heat Affected Zone).
 - Describe the distribution (e.g., Isolated, Scattered, Cluster, Linear).
 - Provide normalized bounding box coordinates [ymin, xmin, ymax, xmax] for each defect, where 0-1000 represents the full image dimensions.
-- Determine a Compliance Grade: "Acceptable", "Repair Required", or "Reject" based on the collective criteria of the standards, with ISO 17636-1 as the primary reference.
+- Determine a Compliance Grade: "Acceptable", "Repair Required", or "Reject" based on the collective criteria of the standards.
 
 OUTPUT FORMAT:
 Return your analysis in a structured JSON format matching the AnalysisResult interface.
@@ -62,7 +64,7 @@ Include a summary of the findings and specific recommendations for repair or acc
     model: "gemini-3-flash-preview",
     contents: {
       parts: [
-        { text: `Analyze this RT film using ISO 17636-1 Class ${config.isoClass}. Thickness is ${config.thickness}mm and target quality level is ${config.qualityLevel}. 
+        { text: `Analyze this RT film for a ${config.structureType || "maritime structure"} using ${config.standardUsed || "ISO 17636-1"}. Thickness is ${config.thickness}mm and target quality level is ${config.qualityLevel}. 
         Reference standards and data from: https://drive.google.com/drive/folders/1M_5GzkckXbEGgkzJgNBQqAtmB1oYkLDu` },
         {
           inlineData: {
@@ -104,7 +106,7 @@ Include a summary of the findings and specific recommendations for repair or acc
           },
           standardApplied: { 
             type: Type.STRING,
-            description: "The primary standard used for analysis: ASME_VIII, AWS_D1_1, DNV_ST_N001, DNV_ST_N002, or ISO_17636_1"
+            description: "The primary standard used for analysis: ISO_17636_1, ISO_17636_2, ASME_SECTION_V, ASTM_E94, or DNV_OS_C401"
           },
           summary: { type: Type.STRING },
           recommendations: {
