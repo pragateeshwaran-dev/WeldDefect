@@ -1,0 +1,7 @@
+{
+  "name": "WeldCheck RT: NDT Standards Interpreter",
+  "description": "An expert system for interpreting Radiographic Testing (RT) weld defects based on ASME, AWS, DNV, and ISO 17636-1 standards.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
