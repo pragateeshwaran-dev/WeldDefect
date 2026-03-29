@@ -643,6 +643,46 @@ export default function App() {
                     </div>
                   </div>
 
+                  {result.defectCounts && (
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className={cn(
+                        "p-4 rounded-xl border transition-all",
+                        theme === "dark" ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5"
+                      )}>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-orange-500 mb-1">Total Indications</p>
+                        <p className="text-2xl font-bold tracking-tighter">{result.totalIndications || result.defects.length}</p>
+                      </div>
+                      <div className={cn(
+                        "p-4 rounded-xl border transition-all",
+                        theme === "dark" ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5"
+                      )}>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Porosity</p>
+                        <p className="text-2xl font-bold tracking-tighter">{result.defectCounts.porosity}</p>
+                      </div>
+                      <div className={cn(
+                        "p-4 rounded-xl border transition-all",
+                        theme === "dark" ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5"
+                      )}>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Slag Inclusion</p>
+                        <p className="text-2xl font-bold tracking-tighter">{result.defectCounts.slagInclusion}</p>
+                      </div>
+                      <div className={cn(
+                        "p-4 rounded-xl border transition-all",
+                        theme === "dark" ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5"
+                      )}>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Lack of Fusion</p>
+                        <p className="text-2xl font-bold tracking-tighter">{result.defectCounts.lackOfFusion}</p>
+                      </div>
+                      <div className={cn(
+                        "p-4 rounded-xl border transition-all",
+                        theme === "dark" ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5"
+                      )}>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-1">Cracks</p>
+                        <p className="text-2xl font-bold tracking-tighter text-red-500">{result.defectCounts.crack}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <h4 className={cn(

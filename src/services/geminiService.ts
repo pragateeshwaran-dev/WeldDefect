@@ -27,7 +27,12 @@ export async function analyzeRTFilm(
   const backendStandards = await getStandardsFromBackend();
   
   const SYSTEM_INSTRUCTION = `You are an expert NDT (Non-Destructive Testing) and Radiographic Testing (RT) specialist for MARINA (Maritime Regulatory Inspection and NDT Assessment). 
-Your task is to analyze RT film images of welds and interpret defects based on maritime and international standards.
+Your task is to perform a COMPREHENSIVE and SIMULTANEOUS analysis of RT film images.
+
+CRITICAL REQUIREMENT:
+- You MUST identify and analyze EVERY weld defect and indication present in the uploaded image at once.
+- Do not stop after finding one defect; scan the entire weld length shown in the film.
+- Interpret defects based on maritime and international standards.
 
 USER CONFIGURATION:
 - Material Thickness: ${config.thickness} mm
@@ -49,12 +54,16 @@ PRIMARY CONSIDERATION:
 - NEVER provide percentage assurance or confidence scores in the result.
 
 ANALYSIS REQUIREMENTS:
-- Identify the type of defect (e.g., Porosity, Slag Inclusion, Lack of Fusion, Cracks, Undercut).
-- Estimate the size of each defect.
-- Identify the location (e.g., Root, Face, Heat Affected Zone).
-- Describe the distribution (e.g., Isolated, Scattered, Cluster, Linear).
-- Provide normalized bounding box coordinates [ymin, xmin, ymax, xmax] for each defect, where 0-1000 represents the full image dimensions.
-- Determine a Compliance Grade: "Acceptable", "Repair Required", or "Reject" based on the collective criteria of the standards.
+- Identify EVERY defect (e.g., Porosity, Slag Inclusion, Lack of Fusion, Cracks, Undercut, Incomplete Penetration).
+- For EACH defect found:
+  - Identify the type.
+  - Estimate the size.
+  - Identify the location (e.g., Root, Face, Heat Affected Zone).
+  - Describe the distribution (e.g., Isolated, Scattered, Cluster, Linear).
+  - Provide normalized bounding box coordinates [ymin, xmin, ymax, xmax] (0-1000).
+- Provide a total count of all indications.
+- Categorize counts by major defect types.
+- Determine a Compliance Grade: "Acceptable", "Repair Required", or "Reject" based on the collective criteria.
 
 OUTPUT FORMAT:
 Return your analysis in a structured JSON format matching the AnalysisResult interface.
@@ -64,7 +73,9 @@ Include a summary of the findings and specific recommendations for repair or acc
     model: "gemini-3-flash-preview",
     contents: {
       parts: [
-        { text: `Analyze this RT film for a ${config.structureType || "maritime structure"} using ${config.standardUsed || "ISO 17636-1"}. Thickness is ${config.thickness}mm and target quality level is ${config.qualityLevel}. 
+        { text: `Perform a comprehensive, multi-defect analysis on this RT film for a ${config.structureType || "maritime structure"} using ${config.standardUsed || "ISO 17636-1"}. 
+        Thickness is ${config.thickness}mm and target quality level is ${config.qualityLevel}. 
+        Identify EVERY indication present in the film.
         Reference standards and data from: https://drive.google.com/drive/folders/1M_5GzkckXbEGgkzJgNBQqAtmB1oYkLDu` },
         {
           inlineData: {
@@ -109,6 +120,17 @@ Include a summary of the findings and specific recommendations for repair or acc
             description: "The primary standard used for analysis: ISO_17636_1, ISO_17636_2, ASME_SECTION_V, ASTM_E94, or DNV_OS_C401"
           },
           summary: { type: Type.STRING },
+          totalIndications: { type: Type.INTEGER },
+          defectCounts: {
+            type: Type.OBJECT,
+            properties: {
+              porosity: { type: Type.INTEGER },
+              slagInclusion: { type: Type.INTEGER },
+              lackOfFusion: { type: Type.INTEGER },
+              crack: { type: Type.INTEGER },
+            },
+            required: ["porosity", "slagInclusion", "lackOfFusion", "crack"]
+          },
           recommendations: {
             type: Type.ARRAY,
             items: { type: Type.STRING },
